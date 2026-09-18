@@ -1,0 +1,14 @@
+import express from "express";
+import authMiddleware from "../middleware/authMiddleware.js";
+import adminMiddleware from "../middleware/adminMiddleware.js";
+import { getUsers, getStaff, updateUser, changeUserRole, toggleUserBlock, deleteUser } from "../controllers/adminUserController.js";
+const router = express.Router();
+router.use(authMiddleware);
+router.use(adminMiddleware);
+router.get("/", getUsers);
+router.get("/staff", getStaff);
+router.put("/:id", updateUser);
+router.put("/:id/role", changeUserRole);
+router.put("/:id/block", toggleUserBlock);
+router.delete("/:id", deleteUser);
+export default router;
