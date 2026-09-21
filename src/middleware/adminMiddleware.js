@@ -6,10 +6,10 @@ const adminMiddleware = (req, res, next) => {
     });
   }
 
-  if (req.user.role !== "admin") {
+  if (!["admin", "staff", "fm", "security"].includes(req.user.role)) {
     return res.status(403).json({
       success: false,
-      message: "Admin access required",
+      message: "Admin panel access required",
     });
   }
 

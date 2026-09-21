@@ -190,7 +190,9 @@ export const verifyEmail = async (req, res, next) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        permissions: Array.isArray(user.permissions) ? user.permissions : [],
         isEmailVerified: user.isEmailVerified,
+        isBlocked: user.isBlocked,
       },
     });
   } catch (error) {
@@ -262,7 +264,9 @@ export const login = async (req, res, next) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        permissions: Array.isArray(user.permissions) ? user.permissions : [],
         isEmailVerified: user.isEmailVerified,
+        isBlocked: user.isBlocked,
       },
     });
   } catch (error) {

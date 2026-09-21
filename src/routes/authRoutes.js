@@ -96,7 +96,9 @@ router.get("/me", authMiddleware, (req, res) => {
       email: req.user.email,
       phone: req.user.phone,
       role: req.user.role,
+      permissions: Array.isArray(req.user.permissions) ? req.user.permissions : [],
       isEmailVerified: req.user.isEmailVerified,
+      isBlocked: req.user.isBlocked,
     },
   });
 });

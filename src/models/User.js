@@ -95,9 +95,14 @@ const userSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ["customer", "staff", "admin"],
+      enum: ["customer", "staff", "admin", "fm", "security"],
       default: "customer",
       index: true,
+    },
+
+    permissions: {
+      type: [String],
+      default: [],
     },
 
     isBlocked: {

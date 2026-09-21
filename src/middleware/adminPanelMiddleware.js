@@ -6,7 +6,7 @@ const adminPanelMiddleware = (req, res, next) => {
     });
   }
 
-  if (!["admin", "staff"].includes(req.user.role)) {
+  if (!["admin", "staff", "fm", "security"].includes(req.user.role)) {
     return res.status(403).json({
       success: false,
       message: "Admin panel access required",

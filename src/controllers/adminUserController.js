@@ -1,8 +1,21 @@
 import mongoose from "mongoose";
 import User from "../models/User.js";
-const USER_ROLES = ["customer", "staff"];
+const USER_ROLES = ["customer", "staff", "admin", "fm", "security"];
 const normalizeUser = (user) => {
-  return { id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role, isBlocked: user.isBlocked, isEmailVerified: user.isEmailVerified, profilePicture: user.profilePicture, address: user.address, createdAt: user.createdAt, updatedAt: user.updatedAt };
+  return {
+    id: user._id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    role: user.role,
+    permissions: user.permissions || [],
+    isBlocked: user.isBlocked,
+    isEmailVerified: user.isEmailVerified,
+    profilePicture: user.profilePicture,
+    address: user.address,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
 };
 const validateUserId = (id) => mongoose.Types.ObjectId.isValid(id);
 export const getUsers = async (req, res, next) => {
@@ -29,8 +42,24 @@ export const getUsers = async (req, res, next) => {
     const users = await User.find(filter).select("-password").sort({ createdAt: -1 });
     const customersCount = await User.countDocuments({ role: "customer" });
     const staffCount = await User.countDocuments({ role: "staff" });
+    const adminCount = await User.countDocuments({ role: "admin" });
+    const fmCount = await User.countDocuments({ role: "fm" });
+    const securityCount = await User.countDocuments({ role: "security" });
     const blockedCount = await User.countDocuments({ role: { $in: USER_ROLES }, isBlocked: true });
-    return res.status(200).json({ success: true, count: users.length, stats: { total: customersCount + staffCount, customers: customersCount, staff: staffCount, blocked: blockedCount }, users: users.map(normalizeUser) });
+    return res.status(200).json({
+      success: true,
+      count: users.length,
+      stats: {
+        total: customersCount + staffCount + adminCount + fmCount + securityCount,
+        customers: customersCount,
+        staff: staffCount,
+        admin: adminCount,
+        fm: fmCount,
+        security: securityCount,
+        blocked: blockedCount,
+      },
+      users: users.map(normalizeUser),
+    });
   } catch (error) {
     next(error);
   }
@@ -112,7 +141,7 @@ export const changeUserRole = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "Invalid user ID" });
     }
     if (!USER_ROLES.includes(role)) {
-      return res.status(400).json({ success: false, message: "Role can only be changed to customer or staff" });
+      return res.status(400).json({ success: false, message: "Invalid user role" });
     }
     if (req.user._id.toString() === id) {
       return res.status(400).json({ success: false, message: "You cannot change your own role" });
