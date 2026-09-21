@@ -76,6 +76,8 @@ import paymentRoutes from "./routes/paymentRoutes.js";
 
 import adminPermissionRoutes from "./routes/adminPermissionRoutes.js";
 
+import whatsNewRoutes from "./routes/whatsNewRoutes.js";
+
 import errorMiddleware from "./middleware/errorMiddleware.js";
 
 const app = express();
@@ -175,6 +177,8 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/payments", paymentRoutes);
 
 app.use("/api/admin/permissions", adminPermissionRoutes);
+
+app.use("/api/whats-new", whatsNewRoutes);
 
 app.use((req, res) => {
   res.status(404).json({
