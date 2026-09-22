@@ -23,6 +23,21 @@ const whatsNewViewSchema = new mongoose.Schema(
       maxlength: 30,
     },
 
+    /*
+     * Current login session.
+     *
+     * Used only for every_login behavior.
+     *
+     * Same feature/version can still have only one tracking row.
+     * On every new login this value is replaced with the new session ID.
+     */
+    loginSessionId: {
+      type: String,
+      trim: true,
+      default: null,
+      index: true,
+    },
+
     viewed: {
       type: Boolean,
       default: false,

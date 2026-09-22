@@ -47,6 +47,10 @@ const isTargetedToUser = (feature, role) => {
   return feature.targetRoles.includes(role);
 };
 
+/* =========================================================
+   USER - VISIBLE FEATURES
+========================================================= */
+
 const getVisibleFeatures = async (req) => {
   const now = new Date();
 
@@ -82,6 +86,17 @@ const getVisibleFeatures = async (req) => {
     viewMap.set(`${view.whatsNew.toString()}_${view.version}`, view);
   });
 
+  /*
+   * Frontend login session ID.
+   *
+   * Same login + refresh:
+   * same sessionId => popup nahi dikhega.
+   *
+   * Logout + login:
+   * new sessionId => popup dobara dikhega.
+   */
+  const sessionId = typeof req.query.sessionId === "string" ? req.query.sessionId.trim() : "";
+
   const result = [];
 
   for (const feature of targetedFeatures) {
@@ -89,21 +104,65 @@ const getVisibleFeatures = async (req) => {
 
     const tracking = viewMap.get(key);
 
-    let shouldShow = true;
+    let shouldShow = false;
+
+    /* -------------------------------------------------------
+       EVERY LOGIN
+    ------------------------------------------------------- */
 
     if (feature.displayMode === "every_login") {
-      shouldShow = true;
+      /*
+       * First time:
+       * no tracking => show
+       *
+       * Current login:
+       * same sessionId => don't show
+       *
+       * New login:
+       * different sessionId => show
+       *
+       * Missing sessionId:
+       * don't use it as a permanent reason to show.
+       */
+      if (!tracking || !tracking.viewed) {
+        shouldShow = true;
+      } else if (sessionId && tracking.loginSessionId !== sessionId) {
+        shouldShow = true;
+      } else {
+        shouldShow = false;
+      }
     }
+
+    /* -------------------------------------------------------
+       ONCE
+    ------------------------------------------------------- */
 
     if (feature.displayMode === "once") {
       shouldShow = !tracking?.viewed;
     }
 
+    /* -------------------------------------------------------
+       UNTIL EXPLORED
+    ------------------------------------------------------- */
+
     if (feature.displayMode === "until_explored") {
       shouldShow = !tracking?.explored;
     }
 
+    /* -------------------------------------------------------
+       ONCE PER VERSION
+    ------------------------------------------------------- */
+
     if (feature.displayMode === "once_per_version") {
+      /*
+       * version tracking key ka part hai.
+       *
+       * v1.0 viewed:
+       * v1.0 won't show again.
+       *
+       * v1.1:
+       * new key => show again.
+       */
       shouldShow = !tracking?.viewed;
     }
 
@@ -115,6 +174,7 @@ const getVisibleFeatures = async (req) => {
         explored: Boolean(tracking?.explored),
         viewedAt: tracking?.viewedAt || null,
         exploredAt: tracking?.exploredAt || null,
+        loginSessionId: tracking?.loginSessionId || null,
       },
 
       shouldShow,
@@ -125,7 +185,7 @@ const getVisibleFeatures = async (req) => {
 };
 
 /* =========================================================
-   USER
+   GET USER FEATURES
 ========================================================= */
 
 export const getWhatsNewForUser = async (req, res) => {
@@ -151,6 +211,10 @@ export const getWhatsNewForUser = async (req, res) => {
   }
 };
 
+/* =========================================================
+   MARK VIEWED
+========================================================= */
+
 export const markWhatsNewViewed = async (req, res) => {
   try {
     const { id } = req.params;
@@ -175,7 +239,22 @@ export const markWhatsNewViewed = async (req, res) => {
       });
     }
 
+    const sessionId = typeof req.body?.sessionId === "string" ? req.body.sessionId.trim() : "";
+
     const now = new Date();
+
+    const updateData = {
+      viewed: true,
+      viewedAt: now,
+    };
+
+    /*
+     * every_login feature ke liye current login
+     * session ID save karna mandatory hai.
+     */
+    if (feature.displayMode === "every_login") {
+      updateData.loginSessionId = sessionId || null;
+    }
 
     const view = await WhatsNewView.findOneAndUpdate(
       {
@@ -184,10 +263,7 @@ export const markWhatsNewViewed = async (req, res) => {
         version: feature.version,
       },
       {
-        $set: {
-          viewed: true,
-          viewedAt: now,
-        },
+        $set: updateData,
 
         $setOnInsert: {
           user: req.user._id,
@@ -217,6 +293,10 @@ export const markWhatsNewViewed = async (req, res) => {
   }
 };
 
+/* =========================================================
+   MARK EXPLORED
+========================================================= */
+
 export const markWhatsNewExplored = async (req, res) => {
   try {
     const { id } = req.params;
@@ -241,7 +321,24 @@ export const markWhatsNewExplored = async (req, res) => {
       });
     }
 
+    const sessionId = typeof req.body?.sessionId === "string" ? req.body.sessionId.trim() : "";
+
     const now = new Date();
+
+    const updateData = {
+      viewed: true,
+      explored: true,
+      viewedAt: now,
+      exploredAt: now,
+    };
+
+    /*
+     * every_login feature ke liye current login
+     * session ID bhi save karo.
+     */
+    if (feature.displayMode === "every_login") {
+      updateData.loginSessionId = sessionId || null;
+    }
 
     const view = await WhatsNewView.findOneAndUpdate(
       {
@@ -250,12 +347,7 @@ export const markWhatsNewExplored = async (req, res) => {
         version: feature.version,
       },
       {
-        $set: {
-          viewed: true,
-          explored: true,
-          viewedAt: now,
-          exploredAt: now,
-        },
+        $set: updateData,
 
         $setOnInsert: {
           user: req.user._id,
@@ -386,7 +478,6 @@ export const createWhatsNew = async (req, res) => {
       order: Number.isInteger(body.order) ? body.order : 0,
 
       createdBy: req.user._id,
-
       updatedBy: req.user._id,
     });
 
@@ -673,6 +764,7 @@ export const getWhatsNewStats = async (req, res) => {
 
     return res.status(200).json({
       success: true,
+
       stats: {
         total,
         published,

@@ -1,0 +1,38 @@
+========================================
+BR30 KADAKNATH FARMS
+GIT PUSH COMMANDS
+========================================
+
+# Agar PowerShell me "git is not recognized" error aaye,
+# to current PowerShell session me Git ka PATH add karein:
+
+$env:Path += ";C:\Program Files\Git\cmd;C:\Program Files\Git\bin"
+
+
+# Git installed hai ya nahi check karein:
+
+git --version
+
+
+# Project ki saari changes staging me add karein:
+
+git add .
+
+
+# Changes ko commit karein:
+
+git commit -m "Update What's New feature"
+
+
+# GitHub ke main branch par push karein:
+
+git push origin main
+
+
+========================================
+# IMPORTANT
+========================================
+
+# Ye PATH command sirf current PowerShell session ke liye hai.
+# PowerShell/Terminal close karne ke baad zarurat pad sakti hai
+# agar Git ka permanent PATH system me configured nahi hai.
